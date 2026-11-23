@@ -1,0 +1,115 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Student or admin academic profile and baseline metrics.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Authenticated Firebase UID" },
+        "displayName": { "type": "string", "description": "Display name" },
+        "major": { "type": "string", "description": "Academic major or program" },
+        "university": { "type": "string", "description": "Institution name" },
+        "semesterLabel": { "type": "string", "description": "Current semester label" },
+        "currentGpa": { "type": "number", "description": "Current cumulative GPA (0.0 - 4.0)" },
+        "targetGpa": { "type": "number", "description": "Target GPA (0.0 - 4.0)" },
+        "completedCredits": { "type": "integer", "description": "Completed credit hours" },
+        "weeklyStudyGoalHours": { "type": "integer", "description": "Weekly study target in hours" },
+        "role": { "type": "string", "enum": ["STUDENT", "ADMIN"], "description": "User role" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": ["userId", "displayName", "major", "university", "semesterLabel", "currentGpa", "targetGpa", "completedCredits", "weeklyStudyGoalHours", "role", "createdAt", "updatedAt"]
+    },
+    "CourseRecord": {
+      "title": "CourseRecord",
+      "description": "Enrolled course academic record for GPA analytics.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "code": { "type": "string" },
+        "title": { "type": "string" },
+        "credits": { "type": "integer" },
+        "currentScore": { "type": "number" },
+        "attendancePct": { "type": "number" },
+        "targetGrade": { "type": "string" },
+        "difficulty": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "code", "title", "credits", "currentScore", "attendancePct", "targetGrade", "difficulty", "createdAt", "updatedAt"]
+    },
+    "GpaPrediction": {
+      "title": "GpaPrediction",
+      "description": "AI GPA prediction run stored in student history.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "semesterName": { "type": "string" },
+        "studyHoursPerWeek": { "type": "number" },
+        "attendancePct": { "type": "number" },
+        "assignmentAvg": { "type": "number" },
+        "midtermAvg": { "type": "number" },
+        "previousGpa": { "type": "number" },
+        "creditHours": { "type": "integer" },
+        "sleepHours": { "type": "number" },
+        "predictedGpa": { "type": "number" },
+        "confidencePct": { "type": "integer" },
+        "riskLevel": { "type": "string", "enum": ["LOW", "MODERATE", "HIGH"] },
+        "prognosisSummary": { "type": "string" },
+        "actionPlan": { "type": "array" },
+        "counterfactualTip": { "type": "string" },
+        "source": { "type": "string", "enum": ["GEMINI_AI", "SYNCED_OFFLINE_QUEUE"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "semesterName", "studyHoursPerWeek", "attendancePct", "assignmentAvg", "midtermAvg", "previousGpa", "creditHours", "sleepHours", "predictedGpa", "confidencePct", "riskLevel", "prognosisSummary", "actionPlan", "source", "createdAt", "updatedAt"]
+    },
+    "BlogArticle": {
+      "title": "BlogArticle",
+      "description": "Editorial academic knowledge hub article.",
+      "type": "object",
+      "properties": {
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorRole": { "type": "string" },
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "category": { "type": "string" },
+        "tags": { "type": "array" },
+        "coverKey": { "type": "string" },
+        "readMinutes": { "type": "integer" },
+        "contentMarkdown": { "type": "string" },
+        "published": { "type": "boolean" },
+        "featured": { "type": "boolean" },
+        "popularScore": { "type": "integer" },
+        "sampleContent": { "type": "boolean" },
+        "publishedDateLabel": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["authorId", "authorName", "authorRole", "title", "subtitle", "category", "tags", "coverKey", "readMinutes", "contentMarkdown", "published", "featured", "popularScore", "sampleContent", "publishedDateLabel", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Student profile and academic goals"
+    },
+    "/users/{userId}/courses/{courseId}": {
+      "schema": { "$ref": "#/entities/CourseRecord" },
+      "description": "Student enrolled courses for GPA analytics"
+    },
+    "/users/{userId}/predictions/{predictionId}": {
+      "schema": { "$ref": "#/entities/GpaPrediction" },
+      "description": "Student AI GPA prediction history"
+    },
+    "/users/{userId}/custom_blogs/{blogId}": {
+      "schema": { "$ref": "#/entities/BlogArticle" },
+      "description": "User-authored editorial articles and drafts"
+    },
+    "/blogs/{blogId}": {
+      "schema": { "$ref": "#/entities/BlogArticle" },
+      "description": "Global administrator-published academic blog articles"
+    }
+  }
+}

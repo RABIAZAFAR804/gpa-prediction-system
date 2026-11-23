@@ -1,0 +1,224 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email == 'rabiazafar.web@gmail.com' && request.auth.token.email_verified == true) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+             data.major is string && data.major.size() >= 1 && data.major.size() <= 80 &&
+             data.university is string && data.university.size() >= 1 && data.university.size() <= 100 &&
+             data.semesterLabel is string && data.semesterLabel.size() >= 1 && data.semesterLabel.size() <= 40 &&
+             data.currentGpa is number && data.currentGpa >= 0.0 && data.currentGpa <= 4.0 &&
+             data.targetGpa is number && data.targetGpa >= 0.0 && data.targetGpa <= 4.0 &&
+             data.completedCredits is int && data.completedCredits >= 0 && data.completedCredits <= 300 &&
+             data.weeklyStudyGoalHours is int && data.weeklyStudyGoalHours >= 1 && data.weeklyStudyGoalHours <= 100 &&
+             data.role in ['STUDENT', 'ADMIN'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidCourseRecord(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.code is string && data.code.size() >= 2 && data.code.size() <= 20 &&
+             data.title is string && data.title.size() >= 2 && data.title.size() <= 100 &&
+             data.credits is int && data.credits >= 1 && data.credits <= 12 &&
+             data.currentScore is number && data.currentScore >= 0.0 && data.currentScore <= 100.0 &&
+             data.attendancePct is number && data.attendancePct >= 0.0 && data.attendancePct <= 100.0 &&
+             data.targetGrade is string && data.targetGrade.size() >= 1 && data.targetGrade.size() <= 5 &&
+             data.difficulty in ['LOW', 'MEDIUM', 'HIGH'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidPrediction(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.semesterName is string && data.semesterName.size() >= 2 && data.semesterName.size() <= 60 &&
+             data.studyHoursPerWeek is number && data.studyHoursPerWeek >= 0.0 && data.studyHoursPerWeek <= 100.0 &&
+             data.attendancePct is number && data.attendancePct >= 0.0 && data.attendancePct <= 100.0 &&
+             data.assignmentAvg is number && data.assignmentAvg >= 0.0 && data.assignmentAvg <= 100.0 &&
+             data.midtermAvg is number && data.midtermAvg >= 0.0 && data.midtermAvg <= 100.0 &&
+             data.previousGpa is number && data.previousGpa >= 0.0 && data.previousGpa <= 4.0 &&
+             data.creditHours is int && data.creditHours >= 1 && data.creditHours <= 36 &&
+             data.sleepHours is number && data.sleepHours >= 0.0 && data.sleepHours <= 16.0 &&
+             data.predictedGpa is number && data.predictedGpa >= 0.0 && data.predictedGpa <= 4.0 &&
+             data.confidencePct is int && data.confidencePct >= 0 && data.confidencePct <= 100 &&
+             data.riskLevel in ['LOW', 'MODERATE', 'HIGH'] &&
+             data.prognosisSummary is string && data.prognosisSummary.size() >= 1 && data.prognosisSummary.size() <= 1500 &&
+             data.actionPlan is list && data.actionPlan.size() <= 8 &&
+             (data.actionPlan.size() == 0 || data.actionPlan[0] is string) &&
+             (!('counterfactualTip' in data) || data.counterfactualTip == null || (data.counterfactualTip is string && data.counterfactualTip.size() <= 500)) &&
+             data.source in ['GEMINI_AI', 'SYNCED_OFFLINE_QUEUE'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidBlogArticle(data) {
+      return data.authorId is string && data.authorId.size() >= 1 && data.authorId.size() <= 128 &&
+             data.authorName is string && data.authorName.size() >= 2 && data.authorName.size() <= 80 &&
+             data.authorRole is string && data.authorRole.size() >= 2 && data.authorRole.size() <= 60 &&
+             data.title is string && data.title.size() >= 4 && data.title.size() <= 140 &&
+             data.subtitle is string && data.subtitle.size() >= 4 && data.subtitle.size() <= 240 &&
+             data.category is string && data.category.size() >= 2 && data.category.size() <= 50 &&
+             data.tags is list && data.tags.size() <= 10 &&
+             (data.tags.size() == 0 || data.tags[0] is string) &&
+             data.coverKey is string && data.coverKey.size() >= 1 && data.coverKey.size() <= 300 &&
+             data.readMinutes is int && data.readMinutes >= 1 && data.readMinutes <= 60 &&
+             data.contentMarkdown is string && data.contentMarkdown.size() >= 20 && data.contentMarkdown.size() <= 12000 &&
+             data.published is bool &&
+             data.featured is bool &&
+             data.popularScore is int && data.popularScore >= 0 && data.popularScore <= 100000 &&
+             data.sampleContent is bool &&
+             data.publishedDateLabel is string && data.publishedDateLabel.size() >= 2 && data.publishedDateLabel.size() <= 40 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /admins/{uid} {
+      allow get: if isSignedIn() && request.auth.uid == uid;
+      allow list, create, update, delete: if false;
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if false;
+
+      allow create: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       incoming().userId == request.auth.uid &&
+                       (incoming().role == 'STUDENT' || isAdmin()) &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'major', 'university', 'semesterLabel', 'currentGpa', 'targetGpa', 'completedCredits', 'weeklyStudyGoalHours', 'role', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'major', 'university', 'semesterLabel', 'currentGpa', 'targetGpa', 'completedCredits', 'weeklyStudyGoalHours', 'role', 'createdAt', 'updatedAt']) &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isValidId(userId) &&
+                       (isOwner(userId) || isAdmin()) &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       (
+                         isAdmin() ||
+                         (
+                           incoming().role == existing().role &&
+                           incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'major', 'university', 'semesterLabel', 'currentGpa', 'targetGpa', 'completedCredits', 'weeklyStudyGoalHours', 'updatedAt'])
+                         )
+                       );
+
+      allow delete: if isValidId(userId) && isAdmin();
+
+      match /courses/{courseId} {
+        allow get: if isValidId(userId) && isValidId(courseId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId);
+
+        allow create: if isValidId(userId) && isValidId(courseId) &&
+                         isOwner(userId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll(['userId', 'code', 'title', 'credits', 'currentScore', 'attendancePct', 'targetGrade', 'difficulty', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'code', 'title', 'credits', 'currentScore', 'attendancePct', 'targetGrade', 'difficulty', 'createdAt', 'updatedAt']) &&
+                         isValidCourseRecord(incoming());
+
+        allow update: if isValidId(userId) && isValidId(courseId) &&
+                         isOwner(userId) &&
+                         isValidCourseRecord(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['code', 'title', 'credits', 'currentScore', 'attendancePct', 'targetGrade', 'difficulty', 'updatedAt']);
+
+        allow delete: if isValidId(userId) && isValidId(courseId) && isOwner(userId);
+      }
+
+      match /predictions/{predictionId} {
+        allow get: if isValidId(userId) && isValidId(predictionId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId);
+
+        allow create: if isValidId(userId) && isValidId(predictionId) &&
+                         isOwner(userId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll(['userId', 'semesterName', 'studyHoursPerWeek', 'attendancePct', 'assignmentAvg', 'midtermAvg', 'previousGpa', 'creditHours', 'sleepHours', 'predictedGpa', 'confidencePct', 'riskLevel', 'prognosisSummary', 'actionPlan', 'source', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'semesterName', 'studyHoursPerWeek', 'attendancePct', 'assignmentAvg', 'midtermAvg', 'previousGpa', 'creditHours', 'sleepHours', 'predictedGpa', 'confidencePct', 'riskLevel', 'prognosisSummary', 'actionPlan', 'counterfactualTip', 'source', 'createdAt', 'updatedAt']) &&
+                         isValidPrediction(incoming());
+
+        allow update: if isValidId(userId) && isValidId(predictionId) &&
+                         isOwner(userId) &&
+                         isValidPrediction(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['semesterName', 'prognosisSummary', 'updatedAt']);
+
+        allow delete: if isValidId(userId) && isValidId(predictionId) && isOwner(userId);
+      }
+
+      match /custom_blogs/{blogId} {
+        allow get: if isValidId(userId) && isValidId(blogId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId);
+
+        allow create: if isValidId(userId) && isValidId(blogId) &&
+                         isOwner(userId) &&
+                         incoming().authorId == request.auth.uid &&
+                         incoming().keys().hasAll(['authorId', 'authorName', 'authorRole', 'title', 'subtitle', 'category', 'tags', 'coverKey', 'readMinutes', 'contentMarkdown', 'published', 'featured', 'popularScore', 'sampleContent', 'publishedDateLabel', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['authorId', 'authorName', 'authorRole', 'title', 'subtitle', 'category', 'tags', 'coverKey', 'readMinutes', 'contentMarkdown', 'published', 'featured', 'popularScore', 'sampleContent', 'publishedDateLabel', 'createdAt', 'updatedAt']) &&
+                         isValidBlogArticle(incoming());
+
+        allow update: if isValidId(userId) && isValidId(blogId) &&
+                         isOwner(userId) &&
+                         isValidBlogArticle(incoming()) &&
+                         incoming().authorId == existing().authorId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['authorName', 'authorRole', 'title', 'subtitle', 'category', 'tags', 'coverKey', 'readMinutes', 'contentMarkdown', 'published', 'featured', 'popularScore', 'sampleContent', 'publishedDateLabel', 'updatedAt']);
+
+        allow delete: if isValidId(userId) && isValidId(blogId) && isOwner(userId);
+      }
+    }
+
+    match /blogs/{blogId} {
+      allow get: if isValidId(blogId) && isSignedIn() && (existing().published == true || isAdmin());
+      allow list: if isSignedIn() && (resource.data.published == true || isAdmin());
+
+      allow create: if isValidId(blogId) &&
+                       isAdmin() &&
+                       incoming().authorId == request.auth.uid &&
+                       incoming().keys().hasAll(['authorId', 'authorName', 'authorRole', 'title', 'subtitle', 'category', 'tags', 'coverKey', 'readMinutes', 'contentMarkdown', 'published', 'featured', 'popularScore', 'sampleContent', 'publishedDateLabel', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['authorId', 'authorName', 'authorRole', 'title', 'subtitle', 'category', 'tags', 'coverKey', 'readMinutes', 'contentMarkdown', 'published', 'featured', 'popularScore', 'sampleContent', 'publishedDateLabel', 'createdAt', 'updatedAt']) &&
+                       isValidBlogArticle(incoming());
+
+      allow update: if isValidId(blogId) &&
+                       isAdmin() &&
+                       isValidBlogArticle(incoming()) &&
+                       incoming().authorId == existing().authorId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['authorName', 'authorRole', 'title', 'subtitle', 'category', 'tags', 'coverKey', 'readMinutes', 'contentMarkdown', 'published', 'featured', 'popularScore', 'sampleContent', 'publishedDateLabel', 'updatedAt']);
+
+      allow delete: if isValidId(blogId) && isAdmin();
+    }
+  }
+}
